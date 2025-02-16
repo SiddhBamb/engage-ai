@@ -140,7 +140,7 @@ async def search_sentences(question: str, count: int):
     #   If you can't come up with something based on the input sentences, just give an answer TO THE SPECIFIC QUESTION THAT YOU WERE ASKED based on your other knowledge
     #   USE STANDARD MARKDOWN FORMATTING IN YOUR RESPONSE -- THIS IS VERY IMPORTANT
     #   """
-    gemini_prompt = f"Answer this question in MARKDOWN format, in about 4-6 bullet points: {question}. Then, give a list of a few filename-page number pairs from the following input sentences which could feasibly be sources for your answer in this format: '+++filename---number+++filename---number+++etc.' " + "\n".join(str(result) for result in results)
+    gemini_prompt = f"Answer this question in MARKDOWN format, in about 4-6 bullet points: {question}. Then, give a list of some filename-page number pairs from the following input sentences which could feasibly be sources for your answer in this format: '+++filename---number+++filename---number+++etc.' " + "\n".join(str(result) for result in results) + ". Don't say 'followed by potential file-number pairs' or anything else like that"
     # print("PROMPT:", gemini_prompt)
     # params = {
     #     "api_key": GEMINI_API_KEY,

@@ -31,8 +31,10 @@ import Container from "@mui/material/Container";
 import AppBar from "@mui/material/AppBar";
 import Toolbar from "@mui/material/Toolbar";
 import Typography from "@mui/material/Typography";
+import TextField from "@mui/material/TextField";
 import Button from "@mui/material/Button";
 import Box from "@mui/material/Box";
+import { List, ListItem, ListItemText } from "@mui/material";
 import ToggleButton from "@mui/material/ToggleButton";
 import ToggleButtonGroup from "@mui/material/ToggleButtonGroup";
 import Paper from "@mui/material/Paper";
@@ -479,6 +481,39 @@ function PDFViewer({ page, setPage, newPages }: PDFViewerProps) {
 }
 
 function SearchViewer() {
+  const [searchQuery, setSearchQuery] = React.useState("");
+  const [searchResults, setSearchResults] = React.useState("");
+
+  const handleSearch = async () => {
+    // Make API call to search endpoint
+
+    let config = {
+      method: 'post',
+      maxBodyLength: Infinity,
+      url: `http://localhost:8080/search_sentences?question=${searchQuery}&count=10`,
+      headers: { }
+    };
+    
+    axios.request(config)
+    .then((data) => {
+      // console.log(JSON.stringify(data.data));
+      const resultData = data.data;
+      let explanation = resultData["explanation"];
+      let pages = resultData["file-page-pairs"];
+      let response = `# ${searchQuery}
+
+## Explanation
+${explanation}
+
+## Pages
+${pages.map((page: any) => `- ${page[0]}: ${page[1]}`).join("\n")}`;
+setSearchResults(data.data["explanation"] + "\n\n" + data.data["file-page-pairs"].join("\n"));
+})
+    .catch((error) => {
+      console.log(error);
+    });
+  };
+
   return (
     <Box
       sx={{
@@ -490,7 +525,21 @@ function SearchViewer() {
         color: "#231942",
       }}
     >
-      <Typography variant="h6">Search Viewer Placeholder</Typography>
+      <Typography variant="h6">Search</Typography>
+      <TextField
+        label="Search"
+        value={searchQuery}
+        onChange={(e) => setSearchQuery(e.target.value)}
+        sx={{ width: "100%" }}
+      />
+      <Button variant="contained" onClick={handleSearch} sx={{ mt: 2 }}>
+        Search
+      </Button>
+
+      <Typography variant="h6" sx={{mt: 2}}>Search Results</Typography>
+      <Box sx={{border: "1px solid #9f86c0", p: 2, borderRadius: 1, backgroundColor: "#e0b1cb", color: "#231942", textAlign: 'left'}}>
+      <Markdown >{searchResults}</Markdown>
+      </Box>
     </Box>
   );
 }
