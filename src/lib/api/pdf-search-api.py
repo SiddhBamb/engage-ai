@@ -1,6 +1,7 @@
 import intersystems_iris.dbapi._DBAPI as dbapi
 from sentence_transformers import SentenceTransformer
 from fastapi import FastAPI, File, UploadFile
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from transformers import AutoModel, AutoTokenizer
 import pdfplumber
@@ -12,6 +13,26 @@ import os
 import requests
 from google import genai
 import json
+
+app = FastAPI()
+
+origins = [
+    "http://localhost",
+    "http://localhost:3000",
+    "http://localhost:8000",
+    "http://localhost:8080"
+    # Add other origins as needed
+]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+
 
 config = {
     "hostname": "localhost",
@@ -49,8 +70,6 @@ table_definition = "(sentence VARCHAR(40000), filename VARCHAR(100), page INT, d
         # data = cursor.fetchall()
         # print(data)
         # exit(0)
-
-app = FastAPI()
 
 # Load the transformer model and tokenizer
 # model_name = "sentence-transformers/all-MiniLM-L6-v2"
@@ -116,12 +135,13 @@ async def search_sentences(question: str, count: int):
     
     print("\n".join(str(result) for result in results))
 
-    gemini_prompt = f"Given the following list of sentences AND YOUR OWN KNOWLEDGE, answer this question in 3-5 bullet points (similar to something you'd put on a slideshow) and give a list of filename-page number pairs of input sentences you used: {question} in this format: '+++filename---number+++filename---number+++etc.'. The sentences are: " + "\n".join(str(result) for result in results) + """
-    . Do not say 'based on the text snippets' or anything similar which talks about the sentences, just start the answer directly.
-      If you can't come up with something based on the input sentences, just give an answer TO THE SPECIFIC QUESTION THAT YOU WERE ASKED based on your other knowledge
-      USE STANDARD MARKDOWN FORMATTING IN YOUR RESPONSE -- THIS IS VERY IMPORTANT
-      """
-    print("PROMPT:", gemini_prompt)
+    # gemini_prompt = f"Given the following list of sentences AND YOUR OWN KNOWLEDGE, answer this question in 3-5 bullet points (similar to something you'd put on a slideshow) and give a list of filename-page number pairs of input sentences you used: {question} in this format: '+++filename---number+++filename---number+++etc.'. The sentences are: " + "\n".join(str(result) for result in results) + """
+    # . Do not say 'based on the text snippets' or anything similar which talks about the sentences, just start the answer directly. TRY TO MAKE THE ANSWER AS GOOD AS POSSIBLE, AND IF YOU THINK THE SENTENCES AREN'T VERY RELEVANT, USE THEM LESS AND SUPPORT WITH MORE OF YOUR OWN KNOWLEDGE. MAKE SURE THE RESPONSE IS RELEVANT TO THE QUESTION AND ANSWER THE QUESTION.
+    #   If you can't come up with something based on the input sentences, just give an answer TO THE SPECIFIC QUESTION THAT YOU WERE ASKED based on your other knowledge
+    #   USE STANDARD MARKDOWN FORMATTING IN YOUR RESPONSE -- THIS IS VERY IMPORTANT
+    #   """
+    gemini_prompt = f"Answer this question in MARKDOWN format, in about 4-6 bullet points: {question}. Then, give a list of a few filename-page number pairs from the following input sentences which could feasibly be sources for your answer in this format: '+++filename---number+++filename---number+++etc.' " + "\n".join(str(result) for result in results)
+    # print("PROMPT:", gemini_prompt)
     # params = {
     #     "api_key": GEMINI_API_KEY,
     #     "input": gemini_prompt,
@@ -139,8 +159,9 @@ async def search_sentences(question: str, count: int):
 
     response_arr = response.text.split("+++")
     # print(response_arr)
+
     page_nums = []
-    if len(response_arr) != 1:
+    if len(response_arr) > 1:
         page_nums_str = response_arr[1:]
         for page_num_str in page_nums_str:
             page_num_str = page_num_str.strip()
@@ -152,13 +173,15 @@ async def search_sentences(question: str, count: int):
                 if not page_num.isnumeric():
                     continue
                 page_nums.append((filename.strip(), int(page_num)))
-    page_nums_only = [page_num for filename, page_num in page_nums]
+    elif len(response_arr) == 0:
+        response_arr = ["No information found about your question, sorry!"]
+    page_nums_only = [page_num for _, page_num in page_nums]
+    # print(response_arr[0])
+    reply = JSONResponse(content={"explanation": response_arr[0], "file-page-pairs": page_nums, "page-nums":page_nums_only, "sentences": results}, status_code=200)
+    # print(page_nums)
 
-    response = JSONResponse(content={"explanation": response.text, "file-page-pairs": page_nums, "page-nums":page_nums_only, "sentences": results}, status_code=200)
-    print(page_nums)
-    print(results)
     # Return the relevant sentences
-    return response
+    return reply
 
 # if __name__ == "__main__":
     # asyncio.run(upload_pdf("/Users/siddhbamb/Documents/Programming/TreeHacks25/engage-ai/src/lib/api/sample-5-page-pdf-a4-size.pdf"))

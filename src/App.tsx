@@ -23,6 +23,8 @@ import cn from "classnames";
 import Draggable from "react-draggable";
 import { ExpandMore, ExpandLess } from "@mui/icons-material";
 import Markdown from 'react-markdown'
+import axios from "axios"
+import { RequestInit } from 'node-fetch';
 
 // Material UI components
 import Container from "@mui/material/Container";
@@ -89,7 +91,7 @@ const theme = createTheme({
 function SearchContentForIdeaModal({ open, content, onClose }: { open: boolean, content: string, onClose: () => void }) {
   return (
     <Modal open={open} onClose={onClose}>
-      <Box sx={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', width: 400, bgcolor: 'background.paper', boxShadow: 24, p: 4 }}>
+      <Box sx={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', width: 800, bgcolor: 'background.paper', boxShadow: 24, p: 4 }}>
         <Typography variant="h6" component="h2">
           Search Content for Idea
         </Typography>
@@ -532,7 +534,39 @@ function Logger() {
 // Main App Component wrapping everything in the custom theme
 // -----------------------------------------------------------------------------
 function App() {
+  let prompt = "limits";
   return (
+    // <div className="App">
+    //   TESTING
+    //   <Button onClick={
+    //     () => {
+    //         let config = {
+    //           method: 'post',
+    //           maxBodyLength: Infinity,
+    //           url: `http://localhost:8080/search_sentences?question=${prompt}&count=5`,
+    //           headers: { }
+    //         };
+            
+    //         axios.request(config)
+    //         .then((response) => {
+    //           console.log(JSON.stringify(response.data));
+    //         })
+    //         .catch((error) => {
+    //           console.log(error);
+    //         });
+    //       }
+    //   }> Search 
+    //   </Button>
+    // </div>
+
+    // fetch(`http://localhost:8000/search_sentences/`, {
+    //   method: "POST",
+    //   mode: "no-cors",
+    //   body: JSON.stringify({"question": prompt, "count": 5}),
+    // })
+    //   .then((response) => response.json())
+    //   .then((data) => console.log(data))
+    //   .catch((error) => console.error(error));
     <ThemeProvider theme={theme}>
       <div className="App">
         <LiveAPIProvider url={uri} apiKey={API_KEY}>
@@ -679,10 +713,17 @@ function AgentOrchestrator() {
           const args = fc.args as { idea: string; type: string };
           if (args.type === "textbook") {
             // TODO put call to pdf-search-api here
-            fetch(`${INTERSYST_URL}/search_sentences?question=${args.idea}&count=10`)
-            .then(response => response.json())
-            .then(data => {
-              const resultData = data;
+            let config = {
+              method: 'post',
+              maxBodyLength: Infinity,
+              url: `http://localhost:8080/search_sentences?question=${args.idea}&count=10`,
+              headers: { }
+            };
+            
+            axios.request(config)
+            .then((data) => {
+              // console.log(JSON.stringify(data.data));
+              const resultData = data.data;
               let explanation = resultData["explanation"];
               let pages = resultData["file-page-pairs"];
               let response = `# ${args.idea}
@@ -691,12 +732,33 @@ function AgentOrchestrator() {
 ${explanation}
 
 ## Pages
-${pages.map((page: any) => `- ${page.file_name}: ${page.page_number}`).join("\n")}`;
+${pages.map((page: any) => `- ${page[0]}: ${page[1]}`).join("\n")}`;
               setSearchModalContent(response);
               setSearchModalOpen(true);
               console.log(resultData);
             })
-            .catch(err => console.error(err));
+            .catch((error) => {
+              console.log(error);
+            });
+
+//             fetch(`${INTERSYST_URL}/search_sentences?question=${args.idea}&count=10`)
+//             .then(response => response.json())
+//             .then(data => {
+//               const resultData = data;
+//               let explanation = resultData["explanation"];
+//               let pages = resultData["file-page-pairs"];
+//               let response = `# ${args.idea}
+
+// ## Explanation
+// ${explanation}
+
+// ## Pages
+// ${pages.map((page: any) => `- ${page.file_name}: ${page.page_number}`).join("\n")}`;
+//               setSearchModalContent(response);
+//               setSearchModalOpen(true);
+//               console.log(resultData);
+//             })
+//             .catch(err => console.error(err));
           } else if (args.type === "internet") {
             console.log("Searching the internet for content for the idea:", args.idea);
           }
