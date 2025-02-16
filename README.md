@@ -1,105 +1,41 @@
-# Multimodal Live API - Web console
+# Engage – Real-time AI Agents for Smarter Classrooms
+Engage is a multimodal agentic platform for realtime educational experiences. It aims to maximize learning outcomes with personalized student insights and empower educators with in-class assistance. (200 chars. max)
 
-This repository contains a react-based starter app for using the [Multimodal Live API](<[https://ai.google.dev/gemini-api](https://ai.google.dev/api/multimodal-live)>) over a websocket. It provides modules for streaming audio playback, recording user media such as from a microphone, webcam or screen capture as well as a unified log view to aid in development of your application.
+## Inspiration
+As teaching assistants for large courses, we understand the difficulty of addressing individual student needs in real time. With resource constraints and high student-to-faculty ratios, traditional classroom analytics tend to rely on surveys or assessments, failing to capture live student comprehension and causing a disconnect between teachers and their students.
+Engage changes that. Unlike previous solutions, Engage leverages real-world physical interactions—body language, speech, and classroom behaviors—to create a proactive AI teaching assistant that provides instant insights into student engagement and understanding. Engage also enables teachers with powerful presentation features capable of evolving to meet student needs during lectures, using agentic AI to dynamically insert information and provide additional resources.
 
-[![Multimodal Live API Demo](readme/thumbnail.png)](https://www.youtube.com/watch?v=J_q7JY1XxFE)
+## What it does
+Engage is powered by a real-time multimodal AI, analyzing video, audio, and text to assess student attentiveness, participation, and comprehension, both per-class and long term. It also offers live content generation features to assist teachers by instantly creating learning aids, allowing for evolving presentations which answer students’ questions with increased clarity.
+From a live classroom feed, the system:
+- Captures events—recording structured teacher actions (ideas, feedback) and student responses (questions, distractions, confusing points), generating logs that are mapped to specific lecture sections for detailed per-topic analysis.
+- Offers live Q&A—following along with classroom interactions and capable of performing retrieval-augmented generation (RAG) queries to retrieve course-specific content. The topic is drawn directly from uploaded course materials, ensuring consistent nomenclature/terminology – a huge improvement over internet searches.
+- Assesses engagement—detects attentiveness levels, off-topic discussions, and areas of confusion, allowing teachers to adjust their approach mid-lesson and gain insights which can be used to guide their teaching style long-term.
 
-Watch the demo of the Multimodal Live API [here](https://www.youtube.com/watch?v=J_q7JY1XxFE).
+By offering a data-driven view of each student’s engagement with the class, Engage empowers teachers to refine lectures, assignments, and support systems to better serve students’ needs.
 
-## Usage
+## How we built it
+Engage is built on Google Gemini 2.0 Flash Experimental, optimized for low-latency streaming inference. Engage dynamically calls custom tools in response to observed classroom events (e.g., detecting confusion, tracking student participation). 
+Engage’s RAG-based content generation agent uses InterSystems IRIS for its backend, serving as a vector search-enabled SQL database which stores course materials for easy semantic access. SBERT is used to calculate vector embeddings for course content.
+The application itself is built using TypeScript, React.JS, and Node.JS, with Python used for some APIs.
 
-To get started, [create a free Gemini API key](https://aistudio.google.com/apikey) and add it to the `.env` file. Then:
+## Challenges we ran into
+One of the biggest challenges was ensuring that each tool for the agent served a distinct yet complementary role within the system. Engagement tracking, event logging, and Q&A assistance needed to operate independently yet cohesively, with each agent serving a specific, specialized purpose, yet being able to interact with other agents effectively. We tested extensively to tune our prompts and injected heuristic logic where possible to ensure consistent output in a variety of classroom situations. We expect that as language models continue to become more accurate and cheaper, Engage will be able to derive further utility from the models it is built on.
 
-```
-$ npm install && npm start
-```
+Another challenge laid in integrating the multiple technologies comprising our stack. Between multimodal models, vector databases, and agent tool calling, we found it difficult to properly link all components even with extensive planning between teammates, especially with time pressure of a 36-hour hackathon.
 
-We have provided several example applications on other branches of this repository:
+Most of our team was also inexperienced in web development, which made for a challenging but an overall enjoyable experience as we learned new technologies and frameworks while building our project.
 
-- [demos/GenExplainer](https://github.com/google-gemini/multimodal-live-api-web-console/tree/demos/genexplainer)
-- [demos/GenWeather](https://github.com/google-gemini/multimodal-live-api-web-console/tree/demos/genweather)
-- [demos/GenList](https://github.com/google-gemini/multimodal-live-api-web-console/tree/demos/genlist)
 
-## Example
+## Accomplishments that we're proud of
+We’re proud of building our intuitive user experience within the time constraints. We’ve never previously worked with multimodal language models, especially in an educational context, and it was exciting for us to explore this technology and apply it to an area that we believe benefits from additional data at the physical level. 
 
-Below is an example of an entire application that will use Google Search grounding and then render graphs using [vega-embed](https://github.com/vega/vega-embed):
+## What we learned
+We learned a lot about orchestrating and planning agent tools effectively, as well as how to work with multimodal data. We also picked up skills in web development as two of our team members lacked prior experience, and combining the various elements of the project involved significant debugging and integration skills which we are sure will be useful for future projects.
 
-```typescript
-import { type FunctionDeclaration, SchemaType } from "@google/generative-ai";
-import { useEffect, useRef, useState, memo } from "react";
-import vegaEmbed from "vega-embed";
-import { useLiveAPIContext } from "../../contexts/LiveAPIContext";
+## What's next for Engage
+We feel confident that real-time AI-powered classrooms will soon become the norm. We hope to integrate Engage with existing LMS systems, seamlessly linking content that students see in the classroom with online sources. We’re also interested in incorporating wearable data into our system, adding metrics like heart rate, fatigue, and readiness to better understand student well-being in the context of education. By aligning real-time data streams, proactive assistance, and personalized analytics, we’re excited to contribute to building the classroom of the future.
 
-export const declaration: FunctionDeclaration = {
-  name: "render_altair",
-  description: "Displays an altair graph in json format.",
-  parameters: {
-    type: SchemaType.OBJECT,
-    properties: {
-      json_graph: {
-        type: SchemaType.STRING,
-        description:
-          "JSON STRING representation of the graph to render. Must be a string, not a json object",
-      },
-    },
-    required: ["json_graph"],
-  },
-};
-
-export function Altair() {
-  const [jsonString, setJSONString] = useState<string>("");
-  const { client, setConfig } = useLiveAPIContext();
-
-  useEffect(() => {
-    setConfig({
-      model: "models/gemini-2.0-flash-exp",
-      systemInstruction: {
-        parts: [
-          {
-            text: 'You are my helpful assistant. Any time I ask you for a graph call the "render_altair" function I have provided you. Dont ask for additional information just make your best judgement.',
-          },
-        ],
-      },
-      tools: [{ googleSearch: {} }, { functionDeclarations: [declaration] }],
-    });
-  }, [setConfig]);
-
-  useEffect(() => {
-    const onToolCall = (toolCall: ToolCall) => {
-      console.log(`got toolcall`, toolCall);
-      const fc = toolCall.functionCalls.find(
-        (fc) => fc.name === declaration.name
-      );
-      if (fc) {
-        const str = (fc.args as any).json_graph;
-        setJSONString(str);
-      }
-    };
-    client.on("toolcall", onToolCall);
-    return () => {
-      client.off("toolcall", onToolCall);
-    };
-  }, [client]);
-
-  const embedRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (embedRef.current && jsonString) {
-      vegaEmbed(embedRef.current, JSON.parse(jsonString));
-    }
-  }, [embedRef, jsonString]);
-  return <div className="vega-embed" ref={embedRef} />;
-}
-```
-
-## development
-
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
-Project consists of:
-
-- an Event-emitting websocket-client to ease communication between the websocket and the front-end
-- communication layer for processing audio in and out
-- a boilerplate view for starting to build your apps and view logs
 
 ## Available Scripts
 
@@ -117,10 +53,3 @@ You will also see any lint errors in the console.
 
 Builds the app for production to the `build` folder.\
 It correctly bundles React in production mode and optimizes the build for the best performance.
-
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
-
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
-
-_This is an experiment showcasing the Multimodal Live API, not an official Google product. We’ll do our best to support and maintain this experiment but your mileage may vary. We encourage open sourcing projects as a way of learning from each other. Please respect our and other creators' rights, including copyright and trademark rights when present, when sharing these works and creating derivative work. If you want more info on Google's policy, you can find that [here](https://developers.google.com/terms/site-policies)._
