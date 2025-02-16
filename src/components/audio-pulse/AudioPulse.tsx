@@ -14,10 +14,9 @@
  * limitations under the License.
  */
 
-import "./audio-pulse.scss";
-import React from "react";
-import { useEffect, useRef } from "react";
-import c from "classnames";
+import React, { useEffect, useRef } from "react";
+import Box from "@mui/material/Box";
+import { SxProps, Theme } from "@mui/material/styles";
 
 const lineCount = 3;
 
@@ -33,32 +32,49 @@ export default function AudioPulse({ active, volume, hover }: AudioPulseProps) {
   useEffect(() => {
     let timeout: number | null = null;
     const update = () => {
-      lines.current.forEach(
-        (line, i) =>
-        (line.style.height = `${Math.min(
-          24,
-          4 + volume * (i === 1 ? 400 : 60),
-        )}px`),
-      );
+      lines.current.forEach((line, i) => {
+        line.style.height = `${Math.min(24, 4 + volume * (i === 1 ? 400 : 60))}px`;
+      });
       timeout = window.setTimeout(update, 100);
     };
 
     update();
 
-    return () => clearTimeout((timeout as number)!);
+    return () => {
+      if (timeout !== null) clearTimeout(timeout);
+    };
   }, [volume]);
 
+  const containerStyle: SxProps<Theme> = {
+    display: "flex",
+    alignItems: "flex-end",
+    height: 24,
+    ...(hover && {
+      cursor: "pointer",
+    }),
+  };
+
+  const lineStyle: SxProps<Theme> = {
+    width: 4,
+    height: 4,
+    backgroundColor: active ? "primary.main" : "grey.400",
+    borderRadius: 1,
+    mx: 0.5,
+    transition: "height 0.1s linear",
+  };
+
   return (
-    <div className={c("audioPulse", { active, hover })}>
-      {Array(lineCount)
-        .fill(null)
-        .map((_, i) => (
-          <div
-            key={i}
-            ref={(el) => (lines.current[i] = el!)}
-            style={{ animationDelay: `${i * 133}ms` }}
-          />
-        ))}
-    </div>
+    <Box sx={containerStyle}>
+      {Array.from({ length: lineCount }).map((_, i) => (
+        <Box
+          key={i}
+          ref={(el: HTMLDivElement) => (lines.current[i] = el)}
+          sx={{
+            ...lineStyle,
+            animationDelay: `${i * 133}ms`,
+          }}
+        />
+      ))}
+    </Box>
   );
 }

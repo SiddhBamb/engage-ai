@@ -14,16 +14,25 @@
  * limitations under the License.
  */
 
-import cn from "classnames";
+import React, { memo, ReactNode, RefObject, useEffect, useRef, useState } from "react";
+import { Box, IconButton, Stack, Typography } from "@mui/material";
+import MicIcon from "@mui/icons-material/Mic";
+import MicOffIcon from "@mui/icons-material/MicOff";
+import CancelPresentationIcon from "@mui/icons-material/CancelPresentation";
+import PresentToAllIcon from "@mui/icons-material/PresentToAll";
+import VideocamIcon from "@mui/icons-material/Videocam";
+import VideocamOffIcon from "@mui/icons-material/VideocamOff";
+import PauseIcon from "@mui/icons-material/Pause";
+import PlayArrowIcon from "@mui/icons-material/PlayArrow";
 
-import { memo, ReactNode, RefObject, useEffect, useRef, useState } from "react";
 import { useLiveAPIContext } from "../../contexts/LiveAPIContext";
 import { UseMediaStreamResult } from "../../hooks/use-media-stream-mux";
 import { useScreenCapture } from "../../hooks/use-screen-capture";
 import { useWebcam } from "../../hooks/use-webcam";
 import { AudioRecorder } from "../../lib/audio-recorder";
 import AudioPulse from "../audio-pulse/AudioPulse";
-import "./control-tray.scss";
+
+// Note: the custom SCSS import has been removed because we now rely on MUI's styling.
 
 export type ControlTrayProps = {
   videoRef: RefObject<HTMLVideoElement>;
@@ -40,20 +49,35 @@ type MediaStreamButtonProps = {
   stop: () => any;
 };
 
+function getMediaIcon(iconName: string) {
+  switch (iconName) {
+    case "cancel_presentation":
+      return <CancelPresentationIcon />;
+    case "present_to_all":
+      return <PresentToAllIcon />;
+    case "videocam_off":
+      return <VideocamOffIcon />;
+    case "videocam":
+      return <VideocamIcon />;
+    default:
+      return null;
+  }
+}
+
 /**
- * button used for triggering webcam or screen-capture
+ * Button used for triggering webcam or screen-capture using MUI IconButton
  */
 const MediaStreamButton = memo(
   ({ isStreaming, onIcon, offIcon, start, stop }: MediaStreamButtonProps) =>
     isStreaming ? (
-      <button className="action-button" onClick={stop}>
-        <span className="material-symbols-outlined">{onIcon}</span>
-      </button>
+      <IconButton onClick={stop} color="primary">
+        {getMediaIcon(onIcon)}
+      </IconButton>
     ) : (
-      <button className="action-button" onClick={start}>
-        <span className="material-symbols-outlined">{offIcon}</span>
-      </button>
-    ),
+      <IconButton onClick={start} color="primary">
+        {getMediaIcon(offIcon)}
+      </IconButton>
+    )
 );
 
 function ControlTray({
@@ -63,8 +87,7 @@ function ControlTray({
   supportsVideo,
 }: ControlTrayProps) {
   const videoStreams = [useWebcam(), useScreenCapture()];
-  const [activeVideoStream, setActiveVideoStream] =
-    useState<MediaStream | null>(null);
+  const [activeVideoStream, setActiveVideoStream] = useState<MediaStream | null>(null);
   const [webcam, screenCapture] = videoStreams;
   const [inVolume, setInVolume] = useState(0);
   const [audioRecorder] = useState(() => new AudioRecorder());
@@ -72,18 +95,18 @@ function ControlTray({
   const renderCanvasRef = useRef<HTMLCanvasElement>(null);
   const connectButtonRef = useRef<HTMLButtonElement>(null);
 
-  const { client, connected, connect, disconnect, volume } =
-    useLiveAPIContext();
+  const { client, connected, connect, disconnect, volume } = useLiveAPIContext();
 
   useEffect(() => {
     if (!connected && connectButtonRef.current) {
       connectButtonRef.current.focus();
     }
   }, [connected]);
+
   useEffect(() => {
     document.documentElement.style.setProperty(
       "--volume",
-      `${Math.max(5, Math.min(inVolume * 200, 8))}px`,
+      `${Math.max(5, Math.min(inVolume * 200, 8))}px`
     );
   }, [inVolume]);
 
@@ -125,9 +148,9 @@ function ControlTray({
       canvas.width = video.videoWidth * 0.25;
       canvas.height = video.videoHeight * 0.25;
       if (canvas.width + canvas.height > 0) {
-        ctx.drawImage(videoRef.current, 0, 0, canvas.width, canvas.height);
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
         const base64 = canvas.toDataURL("image/jpeg", 1.0);
-        const data = base64.slice(base64.indexOf(",") + 1, Infinity);
+        const data = base64.slice(base64.indexOf(",") + 1);
         client.sendRealtimeInput([{ mimeType: "image/jpeg", data }]);
       }
       if (connected) {
@@ -142,7 +165,7 @@ function ControlTray({
     };
   }, [connected, activeVideoStream, client, videoRef]);
 
-  //handler for swapping from one video-stream to the next
+  // Handler for swapping from one video stream to the next
   const changeStreams = (next?: UseMediaStreamResult) => async () => {
     if (next) {
       const mediaStream = await next.start();
@@ -157,33 +180,34 @@ function ControlTray({
   };
 
   return (
-    <section className="control-tray">
+    <Box
+      component="section"
+      sx={{ p: 2, display: "flex", flexDirection: "column", alignItems: "center" }}
+    >
       <canvas style={{ display: "none" }} ref={renderCanvasRef} />
-      <nav className={cn("actions-nav", { disabled: !connected })}>
-        <button
-          className={cn("action-button mic-button")}
-          onClick={() => setMuted(!muted)}
-        >
-          {!muted ? (
-            <span className="material-symbols-outlined filled">mic</span>
-          ) : (
-            <span className="material-symbols-outlined filled">mic_off</span>
-          )}
-        </button>
+      <Stack
+        direction="row"
+        spacing={1}
+        alignItems="center"
+        sx={{ opacity: connected ? 1 : 0.5 }}
+      >
+        <IconButton onClick={() => setMuted(!muted)} color="primary">
+          {!muted ? <MicIcon /> : <MicOffIcon />}
+        </IconButton>
 
-        <div className="action-button no-action outlined">
+        <Box>
           <AudioPulse volume={volume} active={connected} hover={false} />
-        </div>
+        </Box>
 
         {supportsVideo && (
           <>
-            <MediaStreamButton
+            {/* <MediaStreamButton
               isStreaming={screenCapture.isStreaming}
               start={changeStreams(screenCapture)}
               stop={changeStreams()}
               onIcon="cancel_presentation"
               offIcon="present_to_all"
-            />
+            /> */}
             <MediaStreamButton
               isStreaming={webcam.isStreaming}
               start={changeStreams(webcam)}
@@ -194,23 +218,21 @@ function ControlTray({
           </>
         )}
         {children}
-      </nav>
+      </Stack>
 
-      <div className={cn("connection-container", { connected })}>
-        <div className="connection-button-container">
-          <button
-            ref={connectButtonRef}
-            className={cn("action-button connect-toggle", { connected })}
-            onClick={connected ? disconnect : connect}
-          >
-            <span className="material-symbols-outlined filled">
-              {connected ? "pause" : "play_arrow"}
-            </span>
-          </button>
-        </div>
-        <span className="text-indicator">Streaming</span>
-      </div>
-    </section>
+      <Box sx={{ mt: 2, display: "flex", alignItems: "center" }}>
+        <IconButton
+          ref={connectButtonRef}
+          onClick={connected ? disconnect : connect}
+          color="primary"
+        >
+          {connected ? <PauseIcon /> : <PlayArrowIcon />}
+        </IconButton>
+        <Typography variant="subtitle1" sx={{ ml: 1 }}>
+          Streaming
+        </Typography>
+      </Box>
+    </Box>
   );
 }
 

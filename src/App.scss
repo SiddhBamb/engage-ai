@@ -1,3 +1,17 @@
+/* SCSS HEX */
+$russian-violet: #231942ff;
+$ultra-violet: #5e548eff;
+$african-violet: #9f86c0ff;
+$lilac: #be95c4ff;
+$pink-lavender: #e0b1cbff;
+
+.react-pdf__Page__canvas {
+  margin: 0 auto;
+  width: 80% !important;
+  height: 100% !important;
+}
+
+
 :root {
   --text: white;
   --gray-200: #b4b8bb;
