@@ -28,8 +28,8 @@ cursor = conn.cursor()
 
 model = SentenceTransformer('all-MiniLM-L6-v2')
 
-load_dotenv(Path("../../../.env"))
-GEMINI_API_KEY = "AIzaSyAZDFp0b19tlYuPBLpyIqzczr13rOJ4SWQ"#os.getenv("REACT_APP_GEMINI_API_KEY")
+load_dotenv()
+GEMINI_API_KEY = os.getenv("REACT_APP_GEMINI_API_KEY")
 
 gemini_client = genai.Client(api_key = GEMINI_API_KEY)
 
