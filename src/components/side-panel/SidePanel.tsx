@@ -74,7 +74,7 @@ export default function SidePanel() {
   };
 
   return (
-    <div className={`side-panel ${open ? "open" : ""}`} style={{ }}>
+    <div className={`side-panel ${open ? "open" : ""}`} style={{ width: "100%" }}>
       {/* Header using MUI Box, Typography and IconButton */}
       <Box 
         component="header" 

@@ -52,13 +52,13 @@ type MediaStreamButtonProps = {
 function getMediaIcon(iconName: string) {
   switch (iconName) {
     case "cancel_presentation":
-      return <CancelPresentationIcon />;
+      return <CancelPresentationIcon sx={{ width: '30px', height: '30px' }} />;
     case "present_to_all":
-      return <PresentToAllIcon />;
+      return <PresentToAllIcon sx={{ width: '30px', height: '30px' }} />;
     case "videocam_off":
-      return <VideocamOffIcon />;
+      return <VideocamOffIcon sx={{ width: '30px', height: '30px' }} />;
     case "videocam":
-      return <VideocamIcon />;
+      return <VideocamIcon sx={{ width: '30px', height: '30px' }}   />;
     default:
       return null;
   }
@@ -70,11 +70,11 @@ function getMediaIcon(iconName: string) {
 const MediaStreamButton = memo(
   ({ isStreaming, onIcon, offIcon, start, stop }: MediaStreamButtonProps) =>
     isStreaming ? (
-      <IconButton onClick={stop} color="primary">
+      <IconButton onClick={stop} color="primary" sx={{ width: '60px', height: '60px' }}>
         {getMediaIcon(onIcon)}
       </IconButton>
     ) : (
-      <IconButton onClick={start} color="primary">
+      <IconButton onClick={start} color="primary" sx={{ width: '60px', height: '60px' }}>
         {getMediaIcon(offIcon)}
       </IconButton>
     )
@@ -191,7 +191,7 @@ function ControlTray({
         alignItems="center"
         sx={{ opacity: connected ? 1 : 0.75 }}
       >
-        <IconButton onClick={() => setMuted(!muted)} color="primary">
+        <IconButton onClick={() => setMuted(!muted)} color="primary" sx={{ width: '60px', height: '60px' }}>
           {!muted ? <MicIcon /> : <MicOffIcon />}
         </IconButton>
 
@@ -226,6 +226,7 @@ function ControlTray({
             ref={connectButtonRef}
             onClick={connected ? disconnect : connect}
             color="primary"
+            sx={{ width: '60px', height: '60px' }}
           >
             {connected ? <PauseIcon /> : <PlayArrowIcon />}
           </IconButton>

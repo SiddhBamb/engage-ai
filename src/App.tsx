@@ -39,6 +39,7 @@ import TableRow from "@mui/material/TableRow";
 import TableCell from "@mui/material/TableCell";
 import TableBody from "@mui/material/TableBody";
 import Slider from "@mui/material/Slider";
+import { VideocamOff } from "@mui/icons-material";
 import { createTheme, ThemeProvider } from "@mui/material/styles";
 
 // For Gemini API function declarations
@@ -147,6 +148,27 @@ interface Timestamped {
 interface TPerson extends Person, Timestamped {}
 interface TStudentEvent extends StudentEvent, Timestamped {}
 interface TTeacherEvent extends TeacherEvent, Timestamped {}
+
+const searchContentForIdea: FunctionDeclaration = {
+  name: "search_content_for_idea",
+  description: "Search for content in the textbook that is relevant to the idea and display it to the user. Only allowed to use this when specifically instructed to do a Deep Dive into 'x' on the (internet | textbook).",
+  parameters: {
+    type: SchemaType.OBJECT,
+    properties: {
+      idea: {
+        type: SchemaType.STRING,
+        description: "The idea to search for.",
+      },
+      type: {
+        type: SchemaType.STRING,
+        description: "The type of content to search for.",
+        // enum: ["textbook", "slides", "internet"],
+        enum: ["textbook", "internet"],
+      },
+    },
+    required: ["idea", "type"],
+  },
+};
 
 // Function declarations
 const trackNewPersonDeclaration: FunctionDeclaration = {
@@ -284,7 +306,7 @@ function SlideViewer({ page, setPage }: ViewerProps) {
   const SlideComponent = (
     <Box
       sx={{
-        border: "2px dashed #231942",
+        border: "2px solid #231942",
         p: 4,
         textAlign: "center",
         borderRadius: 1,
@@ -344,7 +366,7 @@ function PDFViewer({ page, setPage }: ViewerProps) {
   const PDFComponent = (
     <Box
       sx={{
-        border: "2px dashed #231942",
+        border: "2px solid #231942",
         p: 4,
         textAlign: "center",
         borderRadius: 1,
@@ -386,7 +408,7 @@ function SearchViewer() {
   return (
     <Box
       sx={{
-        border: "2px dashed #9f86c0",
+        border: "2px solid #9f86c0",
         p: 4,
         textAlign: "center",
         borderRadius: 1,
@@ -403,7 +425,7 @@ function ReportView() {
   return (
     <Box
       sx={{
-        border: "2px dashed #d32f2f",
+        border: "2px solid #d32f2f",
         p: 4,
         textAlign: "center",
         borderRadius: 1,
@@ -420,7 +442,7 @@ function Logger() {
   return (
     <Box
       sx={{
-        border: "2px dashed #7b1fa2",
+        border: "2px solid #7b1fa2",
         p: 4,
         textAlign: "center",
         borderRadius: 1,
@@ -507,6 +529,7 @@ function AgentOrchestrator() {
             trackNewPersonDeclaration,
             recordStudentEventDeclaration,
             recordTeacherEventDeclaration,
+            searchContentForIdea,
           ],
         },
       ],
@@ -565,6 +588,9 @@ function AgentOrchestrator() {
               { ...args.event, timestamp: Date.now() },
             ]);
           }
+        } else if (fc.name === "search_content_for_idea") {
+          const args = fc.args as { idea: string; type: string };
+          console.log("Searching for content for idea:", args.idea, "of type:", args.type);
         }
       });
     };
@@ -597,21 +623,27 @@ function AgentOrchestrator() {
           border: '8px solid #231942',
           borderRadius: '8px',
           padding: '8px',
-          width: '640px',
-          height: '480px',
+          width: !videoRef.current || !videoStream ? '64px' : '640px',
+          height: !videoRef.current || !videoStream ? '48px' : '480px',
           zIndex: 1000,
           backgroundColor: '#fff',
           bottom: '16px',
           right: '16px'
         }}>
-          <video
-                className={cn("stream", {
-                  hidden: !videoRef.current || !videoStream,
-                })}
-                ref={videoRef}
-                autoPlay
-                playsInline
-              />
+          {(!videoRef.current || !videoStream) ? (
+            <IconButton sx={{ width: '64px', height: '48px' }}>
+              <VideocamOff />
+            </IconButton>
+          ) : (
+            <video
+              className={cn("stream", {
+                hidden: !videoRef.current || !videoStream,
+              })}
+              ref={videoRef}
+              autoPlay
+              playsInline
+            />
+          )}
         </div>
       </Draggable>
       <Draggable>
@@ -743,7 +775,7 @@ function AgentOrchestrator() {
             Backend View
           </Typography>
           {/* {presentationStatus === "stopped" ? ( */}
-          {true ? (
+          {false ? (
             <ReportView />
           ) : (
             <Grid container spacing={2}>
@@ -755,19 +787,19 @@ function AgentOrchestrator() {
               <Grid item xs={12} md={6}>
                 <Paper sx={{ p: 2, maxHeight: 500, overflow: "auto" }}>
                   <Typography variant="h6" gutterBottom>
-                    Agent State
+                    Lecture Notes
                   </Typography>
                   {/* Tracked People Table */}
                   <Typography variant="subtitle1" sx={{ mt: 2 }}>
-                    Tracked People
+                    Attendees
                   </Typography>
                   <TableContainer component={Paper}>
                     <Table size="small">
                       <TableHead>
                         <TableRow>
                           <TableCell>Name</TableCell>
-                          <TableCell>Physical Description</TableCell>
-                          <TableCell>Role</TableCell>
+                          <TableCell>Things to remember them by...</TableCell>
+                          <TableCell>Course role</TableCell>
                           <TableCell>Timestamp</TableCell>
                         </TableRow>
                       </TableHead>
@@ -788,7 +820,7 @@ function AgentOrchestrator() {
 
                   {/* Teacher Events Table */}
                   <Typography variant="subtitle1" sx={{ mt: 2 }}>
-                    Teacher Events
+                    Teacher moments
                   </Typography>
                   <TableContainer component={Paper}>
                     <Table size="small">
@@ -796,7 +828,7 @@ function AgentOrchestrator() {
                         <TableRow>
                           <TableCell>Description</TableCell>
                           <TableCell>Type</TableCell>
-                          <TableCell>Section</TableCell>
+                          <TableCell>What topic was being discussed?</TableCell>
                           <TableCell>Timestamp</TableCell>
                         </TableRow>
                       </TableHead>
@@ -817,7 +849,7 @@ function AgentOrchestrator() {
 
                   {/* Student Events Table */}
                   <Typography variant="subtitle1" sx={{ mt: 2 }}>
-                    Student Events
+                    Student moments
                   </Typography>
                   <TableContainer component={Paper}>
                     <Table size="small">
@@ -826,7 +858,7 @@ function AgentOrchestrator() {
                           <TableCell>Name</TableCell>
                           <TableCell>Description</TableCell>
                           <TableCell>Type</TableCell>
-                          <TableCell>Section</TableCell>
+                          <TableCell>What topic was being discussed?</TableCell>
                           <TableCell>Timestamp</TableCell>
                         </TableRow>
                       </TableHead>
