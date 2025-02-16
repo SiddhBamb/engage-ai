@@ -11,6 +11,7 @@ from pathlib import Path
 import os
 import requests
 from google import genai
+import json
 
 config = {
     "hostname": "localhost",
@@ -35,11 +36,15 @@ gemini_client = genai.Client(api_key = GEMINI_API_KEY)
 
 table_name = "pdftable"
 table_definition = "(sentence VARCHAR(40000), filename VARCHAR(100), page INT, desc_vector VECTOR(DOUBLE, 384))"
+
+# UNCOMMENT THIS PART TO CLEAR THE TABLE
 # try:
 #     cursor.execute(f"DROP TABLE {table_name}")
 # except:
 #     pass
 # cursor.execute(f"CREATE TABLE {table_name} {table_definition}")
+        
+        
         # cursor.execute(f"SELECT * from {table_name}")
         # data = cursor.fetchall()
         # print(data)
@@ -70,7 +75,7 @@ async def upload_pdf(file: str):
             sentences.extend(new_sentences)
             pages.extend([page_num+1]*len(new_sentences))
             maxlensen = max(maxlensen, max(len(s) for s in new_sentences))
-            # print("page", page_num, "done processing")
+            print("page", page_num, "done processing")
     # print(maxlensen, "maxlensen")
     # Generate embeddings for each sentence
     embeddings = []
@@ -81,17 +86,17 @@ async def upload_pdf(file: str):
         # embedding = outputs.last_hidden_state[:, 0, :].numpy()[0]
         embedding = ",".join(str(x) for x in model.encode(sentence, normalize_embeddings=True).tolist())
         embeddings.append(embedding)
-        # if i % 100 == 0:
-            # print("embedding", i, "done processing")
+        if i % 100 == 0:
+            print("embedding", i, "done processing")
 
     # Store the embeddings in the IRIS vector database
     sql = f"Insert into {table_name} (sentence, filename, page, desc_vector) VALUES (?, ?, ?, TO_VECTOR(?))"
     # params = [(int(max_id) + 1 + i, sentence, page, embedding) for i, (sentence, page, embedding) in enumerate(zip(sentences, pages, embeddings))]
     params = [(sentence.encode('ascii', 'ignore').decode(), file, page, embedding) for (sentence, page, embedding) in zip(sentences, pages, embeddings)]
     # print("\n".join(str(param) for param in params))
-    # print("beginning insert")
+    print("beginning insert")
     cursor.executemany(sql, params)
-    # print("finished insert")
+    print("finished insert")
 
     return JSONResponse(content={"message": "PDF uploaded and embeddings generated"}, status_code=200)
 
@@ -149,12 +154,19 @@ async def search_sentences(question: str, count: int):
                 page_nums.append((filename.strip(), int(page_num)))
     page_nums_only = [page_num for filename, page_num in page_nums]
 
-
+    response = JSONResponse(content={"explanation": response.text, "file-page-pairs": page_nums, "page-nums":page_nums_only, "sentences": results}, status_code=200)
+    print(page_nums)
+    print(results)
     # Return the relevant sentences
-    return JSONResponse(content={"explanation": response.text, "file-page-pairs": page_nums, "page-nums":page_nums_only, "sentences": results}, status_code=200)
+    return response
 
 # if __name__ == "__main__":
     # asyncio.run(upload_pdf("/Users/siddhbamb/Documents/Programming/TreeHacks25/engage-ai/src/lib/api/sample-5-page-pdf-a4-size.pdf"))
     # asyncio.run(search_sentences("How do you do marketing?"))
-    # asyncio.run(upload_pdf("/Users/siddhbamb/Documents/Programming/TreeHacks25/engage-ai/src/lib/api/Chapter9.pdf"))
+    # asyncio.run(upload_pdf("Chapter9.pdf"))
+    # asyncio.run(upload_pdf("cliffs_calculus.pdf"))
     # asyncio.run(search_sentences("Can you explain the concept of Lamport's distributed mutual exclusion to me, specifically how the critical section works?", 20))
+   
+    # PERFECT EXAMPLE!!!!
+    # asyncio.run(upload_pdf("introcalc.pdf"))
+    # asyncio.run(search_sentences("Can you explain what a limit is to me?", 5))
