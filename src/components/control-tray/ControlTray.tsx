@@ -189,14 +189,14 @@ function ControlTray({
         direction="row"
         spacing={1}
         alignItems="center"
-        sx={{ opacity: connected ? 1 : 0.5 }}
+        sx={{ opacity: connected ? 1 : 0.75 }}
       >
         <IconButton onClick={() => setMuted(!muted)} color="primary">
           {!muted ? <MicIcon /> : <MicOffIcon />}
         </IconButton>
 
         <Box>
-          <AudioPulse volume={volume} active={connected} hover={false} />
+          {/* <AudioPulse volume={volume} active={connected} hover={false} /> */}
         </Box>
 
         {supportsVideo && (
@@ -221,16 +221,18 @@ function ControlTray({
       </Stack>
 
       <Box sx={{ mt: 2, display: "flex", alignItems: "center" }}>
-        <IconButton
-          ref={connectButtonRef}
-          onClick={connected ? disconnect : connect}
-          color="primary"
-        >
-          {connected ? <PauseIcon /> : <PlayArrowIcon />}
-        </IconButton>
-        <Typography variant="subtitle1" sx={{ ml: 1 }}>
-          Streaming
-        </Typography>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "row" }}>
+          <IconButton
+            ref={connectButtonRef}
+            onClick={connected ? disconnect : connect}
+            color="primary"
+          >
+            {connected ? <PauseIcon /> : <PlayArrowIcon />}
+          </IconButton>
+          <Typography variant="subtitle1" sx={{ ml: 1 }}>
+            Present
+          </Typography>
+        </div>
       </Box>
     </Box>
   );

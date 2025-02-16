@@ -288,12 +288,12 @@ function SlideViewer({ page, setPage }: ViewerProps) {
         p: 4,
         textAlign: "center",
         borderRadius: 1,
-        backgroundColor: "#be95c4",
+        // backgroundColor: "#be95c4",
         color: "#231942",
         mb: 2,
       }}
     >
-      <div style={{ marginTop: "16px" }}>
+      <div style={{ marginTop: "16px", marginBottom: "16px" }}>
         <p>
           Page {page || (numPages ? 1 : "--")} of {numPages || "--"}
         </p>
@@ -348,12 +348,12 @@ function PDFViewer({ page, setPage }: ViewerProps) {
         p: 4,
         textAlign: "center",
         borderRadius: 1,
-        backgroundColor: "#be95c4",
+        // backgroundColor: "#be95c4",
         color: "#231942",
         mb: 2,
       }}
     >
-      <div style={{ marginTop: "16px" }}>
+      <div style={{ marginTop: "16px", marginBottom: "16px" }}>
         <p>
           Page {page || (numPages ? 1 : "--")} of {numPages || "--"}
         </p>
@@ -464,7 +464,7 @@ function AgentOrchestrator() {
 
   // NEW STATES: current page tracking for the slide PDF and the textbook PDF
   const [slidePage, setSlidePage] = useState(1);
-  const [pdfPage, setPdfPage] = useState(1);
+  const [pdfPage, setPdfPage] = useState(3);
 
   // Agent state (tracked data)
   const [trackedPeople, setTrackedPeople] = useState<any[]>([]);
@@ -591,10 +591,54 @@ function AgentOrchestrator() {
         borderRadius: "8px",
       }}
     >
+      <Draggable>
+        <div style={{ 
+          position: 'absolute',
+          border: '8px solid #231942',
+          borderRadius: '8px',
+          padding: '8px',
+          width: '640px',
+          height: '480px',
+          zIndex: 1000,
+          backgroundColor: '#fff',
+          bottom: '16px',
+          right: '16px'
+        }}>
+          <video
+                className={cn("stream", {
+                  hidden: !videoRef.current || !videoStream,
+                })}
+                ref={videoRef}
+                autoPlay
+                playsInline
+              />
+        </div>
+      </Draggable>
+      <Draggable>
+        <div style={{ 
+          position: 'absolute',
+          border: '8px solid #231942',
+          borderRadius: '8px', 
+          padding: '8px',
+          maxWidth: '200px',
+          zIndex: 1000,
+          backgroundColor: '#fff',
+          bottom: '16px',
+          left: '16px'
+        }}>
+          <ControlTray
+            videoRef={videoRef}
+            supportsVideo={true}
+            onVideoStreamChange={setVideoStream}
+          >
+            {/* Additional custom buttons can be added here */}
+          </ControlTray>
+        </div>
+      </Draggable>
       {/* Top Navigation Bar */}
       <AppBar position="static" color="primary" sx={{ mb: 4, borderRadius: "8px" }}>
         <Toolbar>
-          <Typography variant="h6" sx={{ flexGrow: 1 }}>
+          <Typography variant="h6" sx={{ flexGrow: 1 , fontSize: '24px'}}>
             Agent Orchestrator
           </Typography>
           <Button
@@ -616,10 +660,11 @@ function AgentOrchestrator() {
       {viewMode === "presenter" ? (
         <Box className="presenter-view">
           <Typography variant="h5" sx={{ mb: 2 }}>
-            Presenter View - Status: {presentationStatus}
+            {/* Presenter View - Status: {presentationStatus} */}
+            Presenter View
           </Typography>
           {/* Presentation Controls */}
-          <Box sx={{ mb: 2 }}>
+          {/* <Box sx={{ mb: 2 }}>
             {presentationStatus === "stopped" && (
               <Button variant="contained" color="primary" onClick={handleStart} sx={{ borderRadius: "8px" }}>
                 Start Presentation
@@ -645,10 +690,11 @@ function AgentOrchestrator() {
                 </Button>
               </>
             )}
-          </Box>
+          </Box> */}
 
           {/* Viewer Display */}
-          {presentationStatus !== "stopped" ? (
+          {/* {presentationStatus !== "stopped" ? ( */}
+          {true ? (
             <>
               {presenterMode === "slide" && (
                 <SlideViewer page={slidePage} setPage={setSlidePage} />
@@ -690,19 +736,20 @@ function AgentOrchestrator() {
         // Backend view: if presentation is complete show ReportView,
         // otherwise split the screen between the live log and the tracked state.
         <Box className="backend-view">
-          <Typography variant="h5" sx={{ mb: 2 }}>
+          {/* <Typography variant="h5" sx={{ mb: 2 }}>
             Backend View - Status: {presentationStatus}
+          </Typography> */}
+          <Typography variant="h5" sx={{ mb: 2 }}>
+            Backend View
           </Typography>
-          {presentationStatus === "stopped" ? (
+          {/* {presentationStatus === "stopped" ? ( */}
+          {true ? (
             <ReportView />
           ) : (
             <Grid container spacing={2}>
               <Grid item xs={12} md={6}>
                 <Paper sx={{ p: 2, height: "100%" }}>
-                  <Typography variant="h6" gutterBottom>
-                    Live CoT &amp; Function Call Log
-                  </Typography>
-                  <Logger />
+                <SidePanel />
                 </Paper>
               </Grid>
               <Grid item xs={12} md={6}>
@@ -804,13 +851,6 @@ function AgentOrchestrator() {
           )}
         </Box>
       )}
-      <ControlTray
-        videoRef={videoRef}
-        supportsVideo={true}
-        onVideoStreamChange={setVideoStream}
-      >
-        {/* Additional custom buttons can be added here */}
-      </ControlTray>
     </Box>
   );
 }

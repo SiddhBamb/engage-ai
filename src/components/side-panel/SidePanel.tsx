@@ -23,6 +23,11 @@ import { useLoggerStore } from "../../lib/store-logger";
 import Logger, { LoggerFilterType } from "../logger/Logger";
 import "./side-panel.scss";
 
+// Importing MUI components and icons
+import { Box, IconButton, Typography, Chip, TextField, Button } from "@mui/material";
+import OnlinePredictionIcon from "@mui/icons-material/OnlinePrediction";
+import PauseCircleFilledIcon from "@mui/icons-material/PauseCircleFilled";
+
 const filterOptions = [
   { value: "conversations", label: "Conversations" },
   { value: "tools", label: "Tool Use" },
@@ -37,13 +42,10 @@ export default function SidePanel() {
   const { log, logs } = useLoggerStore();
 
   const [textInput, setTextInput] = useState("");
-  const [selectedOption, setSelectedOption] = useState<{
-    value: string;
-    label: string;
-  } | null>(null);
-  const inputRef = useRef<HTMLTextAreaElement>(null);
+  const [selectedOption, setSelectedOption] = useState<{ value: string; label: string } | null>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
 
-  //scroll the log to the bottom when new logs come in
+  // Scroll the log to the bottom when new logs come in
   useEffect(() => {
     if (loggerRef.current) {
       const el = loggerRef.current;
@@ -55,7 +57,7 @@ export default function SidePanel() {
     }
   }, [logs]);
 
-  // listen for log events and store them
+  // Listen for log events and store them
   useEffect(() => {
     client.on("log", log);
     return () => {
@@ -65,28 +67,40 @@ export default function SidePanel() {
 
   const handleSubmit = () => {
     client.send([{ text: textInput }]);
-
     setTextInput("");
     if (inputRef.current) {
-      inputRef.current.innerText = "";
+      inputRef.current.value = "";
     }
   };
 
   return (
-    <div className={`side-panel ${open ? "open" : ""}`}>
-      <header className="top">
-        <h2>Console</h2>
+    <div className={`side-panel ${open ? "open" : ""}`} style={{ }}>
+      {/* Header using MUI Box, Typography and IconButton */}
+      <Box 
+        component="header" 
+        className="top" 
+        sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", p: 1 }}
+      >
+        <Typography variant="h6" sx={{ color: "#231942", fontWeight: "bold" }}>
+          Console
+        </Typography>
         {open ? (
-          <button className="opener" onClick={() => setOpen(false)}>
-            <RiSidebarFoldLine color="#b4b8bb" />
-          </button>
+          <IconButton onClick={() => setOpen(false)} sx={{ color: "#231942" }}>
+            <RiSidebarFoldLine />
+          </IconButton>
         ) : (
-          <button className="opener" onClick={() => setOpen(true)}>
-            <RiSidebarUnfoldLine color="#b4b8bb" />
-          </button>
+          <IconButton onClick={() => setOpen(true)} sx={{ color: "#231942" }}>
+            <RiSidebarUnfoldLine />
+          </IconButton>
         )}
-      </header>
-      <section className="indicators">
+      </Box>
+
+      {/* Indicators section with react-select and a streaming/paused indicator as a MUI Chip */}
+      <Box 
+        component="section" 
+        className="indicators" 
+        sx={{ display: "flex", alignItems: "center", gap: 2, p: 1 }}
+      >
         <Select
           className="react-select"
           classNamePrefix="react-select"
@@ -114,48 +128,63 @@ export default function SidePanel() {
             setSelectedOption(e);
           }}
         />
-        <div className={cn("streaming-indicator", { connected })}>
-          {connected
-            ? `🔵${open ? " Streaming" : ""}`
-            : `⏸️${open ? " Paused" : ""}`}
-        </div>
-      </section>
-      <div className="side-panel-container" ref={loggerRef}>
-        <Logger
-          filter={(selectedOption?.value as LoggerFilterType) || "none"}
+        <Chip
+          icon={connected ? <OnlinePredictionIcon /> : <PauseCircleFilledIcon />}
+          label={open ? (connected ? "Streaming" : "Paused") : ""}
+          sx={{
+            backgroundColor: "#231942",
+            color: "#fff",
+            fontWeight: "bold",
+          }}
         />
-      </div>
-      <div className={cn("input-container", { disabled: !connected })}>
-        <div className="input-content">
-          <textarea
-            className="input-area"
-            ref={inputRef}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" && !e.shiftKey) {
-                e.preventDefault();
-                e.stopPropagation();
-                handleSubmit();
-              }
-            }}
-            onChange={(e) => setTextInput(e.target.value)}
-            value={textInput}
-          ></textarea>
-          <span
-            className={cn("input-content-placeholder", {
-              hidden: textInput.length,
-            })}
-          >
-            Type&nbsp;something...
-          </span>
+      </Box>
 
-          <button
-            className="send-button material-symbols-outlined filled"
-            onClick={handleSubmit}
-          >
-            send
-          </button>
-        </div>
-      </div>
+      {/* Log Container */}
+      <Box 
+        ref={loggerRef} 
+        className="side-panel-container" 
+        sx={{ 
+          overflowY: "auto", 
+          color: "#231942",
+          maxHeight: "60%" // Add max height to limit log display
+        }}
+      >
+        <Logger filter={(selectedOption?.value as LoggerFilterType) || "none"} />
+      </Box>
+
+      {/* Input area using MUI TextField and Button */}
+      <Box 
+        className={cn("input-container", { disabled: !connected })}
+        sx={{ display: "flex", alignItems: "center", p: 1 }}
+      >
+        <TextField
+          multiline
+          variant="outlined"
+          placeholder="Type something..."
+          inputRef={inputRef}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" && !e.shiftKey) {
+              e.preventDefault();
+              handleSubmit();
+            }
+          }}
+          onChange={(e) => setTextInput(e.target.value)}
+          value={textInput}
+          fullWidth
+          sx={{
+            backgroundColor: "var(--Neutral-15)",
+            color: "#231942",
+            "& .MuiInputBase-input": { color: "#231942" },
+          }}
+        />
+        <Button
+          variant="contained"
+          onClick={handleSubmit}
+          sx={{ backgroundColor: "#231942", color: "#fff", ml: 1 }}
+        >
+          Send
+        </Button>
+      </Box>
     </div>
   );
 }
