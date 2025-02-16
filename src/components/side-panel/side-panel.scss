@@ -154,7 +154,7 @@
 
   .side-panel-container {
     align-self: flex-end;
-    width: 400px;
+    width: 100%;
     flex-grow: 1;
     overflow-x: hidden;
     overflow-y: auto;
@@ -232,9 +232,10 @@
     }
   }
 }
+
 .side-panel.open {
   width: 400px;
-  height: 100vh;
+  height: 70vh;
 }
 
 .side-panel-responses,

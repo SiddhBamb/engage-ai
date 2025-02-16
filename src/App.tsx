@@ -14,12 +14,15 @@
  * limitations under the License.
  */
 import "react-pdf/dist/esm/Page/TextLayer.css";
+import 'react-pdf/dist/Page/AnnotationLayer.css';
+
 
 import React, { useEffect, useRef, useState } from "react";
 import { LiveAPIProvider, useLiveAPIContext } from "./contexts/LiveAPIContext";
 import cn from "classnames";
 import Draggable from "react-draggable";
 import { ExpandMore, ExpandLess } from "@mui/icons-material";
+import Markdown from 'react-markdown'
 
 // Material UI components
 import Container from "@mui/material/Container";
@@ -47,7 +50,7 @@ import { type FunctionDeclaration, SchemaType } from "@google/generative-ai";
 import { ToolCall } from "./multimodal-live-types";
 import ControlTray from "./components/control-tray/ControlTray";
 import SidePanel from "./components/side-panel/SidePanel";
-import { IconButton } from "@mui/material";
+import { IconButton, Modal } from "@mui/material";
 
 // If you use react-pdf, ensure that you have installed it and its peer dependencies.
 // For simplicity, we assume here that the Document and Page components work as expected.
@@ -83,6 +86,20 @@ const theme = createTheme({
   },
 });
 
+function SearchContentForIdeaModal({ open, content, onClose }: { open: boolean, content: string, onClose: () => void }) {
+  return (
+    <Modal open={open} onClose={onClose}>
+      <Box sx={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', width: 400, bgcolor: 'background.paper', boxShadow: 24, p: 4 }}>
+        <Typography variant="h6" component="h2">
+          Search Content for Idea
+        </Typography>
+        <Markdown>{content}</Markdown>
+      </Box>
+    </Modal>
+  );
+}
+
+
 // -----------------------------------------------------------------------------
 // Data and Function Declarations (unchanged)
 // -----------------------------------------------------------------------------
@@ -93,6 +110,8 @@ if (typeof API_KEY !== "string") {
 }
 const host = "generativelanguage.googleapis.com";
 const uri = `wss://${host}/ws/google.ai.generativelanguage.v1alpha.GenerativeService.BidiGenerateContent`;
+
+const INTERSYST_URL = process.env.INTERSYST_URL as string;
 
 const lecture_sections = [
   {
@@ -344,7 +363,11 @@ function SlideViewer({ page, setPage }: ViewerProps) {
   return SlideComponent;
 }
 
-function PDFViewer({ page, setPage }: ViewerProps) {
+interface PDFViewerProps extends ViewerProps {
+  newPages: [number, string][];
+}
+
+function PDFViewer({ page, setPage, newPages }: PDFViewerProps) {
   // The PDFViewer loads the "Calculus I – Textbook.pdf" file.
   const file = process.env.PUBLIC_URL + "/Calculus I – Textbook.pdf";
   const [numPages, setNumPages] = useState<number | null>(null);
@@ -353,55 +376,104 @@ function PDFViewer({ page, setPage }: ViewerProps) {
     setNumPages(numPages);
   };
 
+  // Compute the displayed total pages.
+  // (Each inserted page adds to the total count.)
+  const displayedTotalPages = numPages !== null ? numPages + newPages.length : null;
+
   const previousPage = () => {
     if (page > 1) setPage(page - 1);
   };
 
   const nextPage = () => {
-    if (numPages && page < numPages) setPage(page + 1);
+    if (displayedTotalPages !== null && page < displayedTotalPages) setPage(page + 1);
   };
 
-  // Define your PDF component as a constant so that it is returned directly.
-  // This helps ensure that the Document is not re-instantiated on every slider change.
-  const PDFComponent = (
+  // Determine whether the current displayed page is an inserted page.
+  // Here each inserted page is assumed to be placed immediately after an original page.
+  // For each inserted page (represented as [insertionAfter, content]),
+  // the displayed index for that insertion is:
+  //    insertionDisplayedIndex = insertionAfter (original pdf page) + offset + 1
+  // where "offset" is the number of inserted pages already counted before this one.
+  let offset = 0;
+  let insertedContent: string | null = null;
+  // To ensure predictable results, assume newPages is sorted by the first element.
+  // (If not, you might want to sort it here.)
+  for (let i = 0; i < newPages.length; i++) {
+    const [insertionAfter, content] = newPages[i];
+    const displayedInsertionIndex = insertionAfter + offset + 1;
+    if (page === displayedInsertionIndex) {
+      insertedContent = content;
+      break;
+    } else if (page > displayedInsertionIndex) {
+      offset++;
+    } else {
+      break;
+    }
+  }
+
+  // If the current page is not an inserted page, then calculate the underlying pdf page.
+  const originalPage = insertedContent === null ? page - offset : null;
+
+  // Define what to display in the Document.
+  const pdfContent = insertedContent !== null ? (
+    <Box
+      sx={{
+        display: "flex",
+        justifyContent: "center",
+        alignItems: "center",
+        height: "100%",
+        p: 2,
+        bgcolor: "#e0b1cb",
+        borderRadius: 1,
+      }}
+    >
+      <Markdown>{insertedContent}</Markdown>
+    </Box>
+  ) : (
+    <Box
+      sx={{
+        display: "flex",
+        justifyContent: "center",
+        alignItems: "center",
+        height: "100%",
+      }}
+    >
+      {originalPage !== null && (
+        <Page pageNumber={originalPage} width={window.innerWidth * 0.8} height={window.innerHeight * 0.8} />
+      )}
+    </Box>
+  );
+
+  return (
     <Box
       sx={{
         border: "2px solid #231942",
         p: 4,
         textAlign: "center",
         borderRadius: 1,
-        // backgroundColor: "#be95c4",
-        color: "#231942",
         mb: 2,
       }}
     >
       <div style={{ marginTop: "16px", marginBottom: "16px" }}>
         <p>
-          Page {page || (numPages ? 1 : "--")} of {numPages || "--"}
+          Page {page || (displayedTotalPages ? 1 : "--")} of {displayedTotalPages || "--"}
         </p>
         <Button variant="contained" disabled={page <= 1} onClick={previousPage} sx={{ mr: 1 }}>
           Previous
         </Button>
-        <Button variant="contained" disabled={numPages ? page >= numPages : true} onClick={nextPage}>
+        <Button
+          variant="contained"
+          disabled={displayedTotalPages !== null && page >= displayedTotalPages}
+          onClick={nextPage}
+        >
           Next
         </Button>
       </div>
       <Document file={file} onLoadSuccess={onDocumentLoadSuccess}>
-        <Box
-          sx={{
-            display: "flex",
-            justifyContent: "center",
-            alignItems: "center",
-            height: "100%",
-          }}
-        >
-          <Page pageNumber={page} width={window.innerWidth * 0.8} height={window.innerHeight * 0.8}/>
-        </Box>
+        {pdfContent}
       </Document>
     </Box>
   );
-
-  return PDFComponent;
 }
 
 function SearchViewer() {
@@ -478,7 +550,7 @@ function AgentOrchestrator() {
   // Reference for the video element (if used)
   const videoRef = useRef<HTMLVideoElement>(null);
   const [videoStream, setVideoStream] = useState<MediaStream | null>(null);
-  const [viewMode, setViewMode] = useState<"presenter" | "backend">("presenter");
+  const [viewMode, setViewMode] = useState<"presenter" | "analaysis">("presenter");
   const [presentationStatus, setPresentationStatus] = useState<
     "stopped" | "in-progress" | "paused"
   >("stopped");
@@ -488,10 +560,23 @@ function AgentOrchestrator() {
   const [slidePage, setSlidePage] = useState(1);
   const [pdfPage, setPdfPage] = useState(3);
 
+  // NEW STATE: newPages holds inserted pages as tuple [insertionAfterPage, content]
+  // For example: [2, "Extra slide content"] means that after original page 2, an extra page was inserted.
+  const [newPages, setNewPages] = useState<[number, string][]>([]);
+
   // Agent state (tracked data)
   const [trackedPeople, setTrackedPeople] = useState<any[]>([]);
   const [teacherEvents, setTeacherEvents] = useState<any[]>([]);
   const [studentEvents, setStudentEvents] = useState<any[]>([]);
+
+  // New states for controlling the modal and its content.
+  const [searchModalOpen, setSearchModalOpen] = useState(false);
+  const [searchModalContent, setSearchModalContent] = useState("");
+
+  const handleSearchModalClose = () => {
+    setSearchModalOpen(false);
+    setSearchModalContent("");
+  };
 
   const { client, setConfig } = useLiveAPIContext();
 
@@ -504,6 +589,8 @@ function AgentOrchestrator() {
       // Optionally reset the viewer pages as well:
       setSlidePage(1);
       setPdfPage(1);
+      // newPages could also be reset here if desired:
+      setNewPages([]);
     }
   }, [presentationStatus]);
 
@@ -590,7 +677,29 @@ function AgentOrchestrator() {
           }
         } else if (fc.name === "search_content_for_idea") {
           const args = fc.args as { idea: string; type: string };
-          console.log("Searching for content for idea:", args.idea, "of type:", args.type);
+          if (args.type === "textbook") {
+            // TODO put call to pdf-search-api here
+            fetch(`${INTERSYST_URL}/search_sentences?question=${args.idea}&count=10`)
+            .then(response => response.json())
+            .then(data => {
+              const resultData = data;
+              let explanation = resultData["explanation"];
+              let pages = resultData["file-page-pairs"];
+              let response = `# ${args.idea}
+
+## Explanation
+${explanation}
+
+## Pages
+${pages.map((page: any) => `- ${page.file_name}: ${page.page_number}`).join("\n")}`;
+              setSearchModalContent(response);
+              setSearchModalOpen(true);
+              console.log(resultData);
+            })
+            .catch(err => console.error(err));
+          } else if (args.type === "internet") {
+            console.log("Searching the internet for content for the idea:", args.idea);
+          }
         }
       });
     };
@@ -630,20 +739,17 @@ function AgentOrchestrator() {
           bottom: '16px',
           right: '16px'
         }}>
-          {(!videoRef.current || !videoStream) ? (
-            <IconButton sx={{ width: '64px', height: '48px' }}>
-              <VideocamOff />
-            </IconButton>
-          ) : (
+
+              <VideocamOff sx={{ width: '64px', height: '48px', display: (!videoRef.current || !videoStream) ? 'block' : 'none' }}/>
             <video
               className={cn("stream", {
                 hidden: !videoRef.current || !videoStream,
-              })}
-              ref={videoRef}
-              autoPlay
-              playsInline
-            />
-          )}
+            })}
+            style={{ display: (!videoRef.current || !videoStream) ? 'none' : 'block' }}
+            ref={videoRef}
+            autoPlay
+            playsInline
+          />
         </div>
       </Draggable>
       <Draggable>
@@ -661,7 +767,11 @@ function AgentOrchestrator() {
           <ControlTray
             videoRef={videoRef}
             supportsVideo={true}
-            onVideoStreamChange={setVideoStream}
+            onVideoStreamChange={(stream) => {
+              setVideoStream(stream);
+              console.log("Video stream changed:", stream);
+              console.log("Video stream type:", videoRef.current);
+            }}
           >
             {/* Additional custom buttons can be added here */}
           </ControlTray>
@@ -671,7 +781,7 @@ function AgentOrchestrator() {
       <AppBar position="static" color="primary" sx={{ mb: 4, borderRadius: "8px" }}>
         <Toolbar>
           <Typography variant="h6" sx={{ flexGrow: 1 , fontSize: '24px'}}>
-            Agent Orchestrator
+          <img src={process.env.PUBLIC_URL + '/logo.png'} alt="Logo" style={{height: '80px', border: '2px solid #231942', borderRadius: '8px', marginTop: '10px'}} />
           </Typography>
           <Button
             color={viewMode === "presenter" ? "secondary" : "inherit"}
@@ -680,10 +790,10 @@ function AgentOrchestrator() {
             Presenter
           </Button>
           <Button
-            color={viewMode === "backend" ? "secondary" : "inherit"}
-            onClick={() => setViewMode("backend")}
+            color={viewMode === "analaysis" ? "secondary" : "inherit"}
+            onClick={() => setViewMode("analaysis")}
           >
-            Backend
+            Analaysis
           </Button>
         </Toolbar>
       </AppBar>
@@ -728,15 +838,8 @@ function AgentOrchestrator() {
           {/* {presentationStatus !== "stopped" ? ( */}
           {true ? (
             <>
-              {presenterMode === "slide" && (
-                <SlideViewer page={slidePage} setPage={setSlidePage} />
-              )}
-              {presenterMode === "pdf" && (
-                <PDFViewer page={pdfPage} setPage={setPdfPage} />
-              )}
-              {presenterMode === "search" && <SearchViewer />}
               {/* Control tray to switch between presentation modes */}
-              <Box sx={{ mt: 2, textAlign: "center" }}>
+              <Box sx={{ textAlign: "center", mb: 2 }}>
                 <ToggleButtonGroup
                   value={presenterMode}
                   exclusive
@@ -757,6 +860,14 @@ function AgentOrchestrator() {
                   </ToggleButton>
                 </ToggleButtonGroup>
               </Box>
+              {presenterMode === "slide" && (
+                <SlideViewer page={slidePage} setPage={setSlidePage} />
+              )}
+              {presenterMode === "pdf" && (
+                <PDFViewer page={pdfPage} setPage={setPdfPage} newPages={newPages} />
+              )}
+              {presenterMode === "search" && <SearchViewer />}
+              
             </>
           ) : (
             <Typography variant="body1" sx={{ mt: 2 }}>
@@ -765,14 +876,14 @@ function AgentOrchestrator() {
           )}
         </Box>
       ) : (
-        // Backend view: if presentation is complete show ReportView,
+        // Analaysis view: if presentation is complete show ReportView,
         // otherwise split the screen between the live log and the tracked state.
-        <Box className="backend-view">
+        <Box className="analaysis-view">
           {/* <Typography variant="h5" sx={{ mb: 2 }}>
-            Backend View - Status: {presentationStatus}
+            Analaysis View - Status: {presentationStatus}
           </Typography> */}
           <Typography variant="h5" sx={{ mb: 2 }}>
-            Backend View
+            Analaysis View
           </Typography>
           {/* {presentationStatus === "stopped" ? ( */}
           {false ? (
@@ -883,6 +994,13 @@ function AgentOrchestrator() {
           )}
         </Box>
       )}
+
+      {/* Render the Search Content Modal */}
+      <SearchContentForIdeaModal
+        open={searchModalOpen}
+        content={searchModalContent}
+        onClose={handleSearchModalClose}
+      />
     </Box>
   );
 }
