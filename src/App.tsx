@@ -344,52 +344,38 @@ function PDFViewer({ page, setPage }: ViewerProps) {
   const PDFComponent = (
     <Box
       sx={{
-        border: "2px dashed #5e548e",
+        border: "2px dashed #231942",
         p: 4,
         textAlign: "center",
         borderRadius: 1,
-        backgroundColor: "#9f86c0",
+        backgroundColor: "#be95c4",
         color: "#231942",
         mb: 2,
       }}
     >
-      <Typography variant="h6" sx={{ mb: 2 }}>
-        PDF Viewer
-      </Typography>
-      <Document file={file} onLoadSuccess={onDocumentLoadSuccess}>
-        <Page pageNumber={page} width={800} />
-      </Document>
-      <Box sx={{ mt: 2, width: "80%", marginX: "auto" }}>
-        <Slider
-          value={page}
-          onChange={(_e, newValue) => setPage(newValue as number)}
-          min={1}
-          max={numPages || 1}
-          valueLabelDisplay="auto"
-          aria-labelledby="pdf-page-slider"
-          sx={{ color: "#231942" }}
-        />
-      </Box>
-      <Box sx={{ mt: 2 }}>
-        <Typography>
+      <div style={{ marginTop: "16px" }}>
+        <p>
           Page {page || (numPages ? 1 : "--")} of {numPages || "--"}
-        </Typography>
-        <Button
-          variant="contained"
-          onClick={previousPage}
-          disabled={page <= 1}
-          sx={{ mr: 1 }}
-        >
+        </p>
+        <Button variant="contained" disabled={page <= 1} onClick={previousPage} sx={{ mr: 1 }}>
           Previous
         </Button>
-        <Button
-          variant="contained"
-          onClick={nextPage}
-          disabled={numPages ? page >= numPages : true}
-        >
+        <Button variant="contained" disabled={numPages ? page >= numPages : true} onClick={nextPage}>
           Next
         </Button>
-      </Box>
+      </div>
+      <Document file={file} onLoadSuccess={onDocumentLoadSuccess}>
+        <Box
+          sx={{
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+            height: "100%",
+          }}
+        >
+          <Page pageNumber={page} width={window.innerWidth * 0.8} height={window.innerHeight * 0.8}/>
+        </Box>
+      </Document>
     </Box>
   );
 
