@@ -1,9 +1,9 @@
 # Engage – Real-time AI Agents for Smarter Classrooms
 Engage is a multimodal agentic platform for realtime educational experiences. It aims to maximize learning outcomes with personalized student insights and empower educators with in-class assistance. (200 chars. max)
 
-<img width="1359" alt="Screenshot 2025-02-16 at 8 23 58 AM" src="https://github.com/user-attachments/assets/d2d903ad-caf6-435d-a503-e39dbdd2dc73" />
 <img width="1358" alt="Screenshot 2025-02-16 at 8 29 14 AM" src="https://github.com/user-attachments/assets/d9511f89-8dc1-480c-a70d-214d3175cc98" />
 <img width="1358" alt="Screenshot 2025-02-16 at 8 29 47 AM" src="https://github.com/user-attachments/assets/1e9eb3f9-84c2-4bff-a81d-b8c9d9719b35" />
+<img width="1359" alt="Screenshot 2025-02-16 at 8 23 58 AM" src="https://github.com/user-attachments/assets/d2d903ad-caf6-435d-a503-e39dbdd2dc73" />
 <img width="1358" alt="Screenshot 2025-02-16 at 8 30 01 AM" src="https://github.com/user-attachments/assets/82b3a03d-40e9-43fb-8cbb-97279079818b" />
 
 ## Inspiration
